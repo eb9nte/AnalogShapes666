@@ -1,4 +1,4 @@
--- Загрузка библиотек с защитой pcall
+-- Загрузка библиотек с защитой pcall[cite: 1]
 local success, Fluent = pcall(function()
     return loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 end)
@@ -19,16 +19,17 @@ local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
+local SoundService = game:GetService("SoundService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
 
--- Кэширование математических функций для скорости
+-- Кэширование математических функций для скорости[cite: 1]
 local math_sin, math_cos, math_rad, math_round, math_exp = math.sin, math.cos, math.rad, math.round, math.exp
 local tick = tick
 
--- Настройка палитры (Liquid Glass)
+-- Настройка палитры (Liquid Glass)[cite: 1]
 if Fluent.Themes and Fluent.Themes.Dark then
     Fluent.Themes.Dark.Accent = Color3.fromRGB(255, 255, 255)
     Fluent.Themes.Dark.TitleText = Color3.fromRGB(255, 255, 255)
@@ -56,11 +57,12 @@ if Window.Frame then
 end
 
 ---------------------------------------------------------
--- UI: ВАТЕРМАРК И TARGET HUD
+-- UI: ВАТЕРМАРК, TARGET HUD И УНИВЕРСАЛЬНЫЙ KILL EFFECT ОВЕРЛЕЙ
 ---------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "s3d3p3shs_GUI"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true -- Растягивает на абсолютный полный экран под все разрешения[cite: 1]
 local suc, parent = pcall(function()
     return gethui and gethui() or CoreGui
 end)
@@ -130,6 +132,30 @@ HpPulse.BackgroundTransparency = 1
 HpPulse.BorderSizePixel = 0
 Instance.new("UICorner", HpPulse).CornerRadius = UDim.new(1, 0)
 
+-- Полноэкранный Тинт экрана[cite: 1]
+local TintOverlay = Instance.new("Frame")
+TintOverlay.Name = "TintOverlay"
+TintOverlay.Size = UDim2.new(1, 0, 1, 0)
+TintOverlay.Position = UDim2.new(0, 0, 0, 0)
+TintOverlay.BackgroundTransparency = 1
+TintOverlay.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+TintOverlay.Visible = false
+TintOverlay.ZIndex = 998
+TintOverlay.Parent = ScreenGui
+
+-- Полноэкранная Виньетка по углам[cite: 1]
+local VignetteOverlay = Instance.new("ImageLabel")
+VignetteOverlay.Name = "VignetteOverlay"
+VignetteOverlay.Size = UDim2.new(1, 0, 1, 0)
+VignetteOverlay.Position = UDim2.new(0, 0, 0, 0)
+VignetteOverlay.BackgroundTransparency = 1
+VignetteOverlay.Image = "rbxassetid://5141973275"
+VignetteOverlay.ImageTransparency = 1
+VignetteOverlay.Visible = false
+VignetteOverlay.ZIndex = 999
+VignetteOverlay.ScaleType = Enum.ScaleType.Stretch
+VignetteOverlay.Parent = ScreenGui
+
 local function MakeDraggable(gui)
     local dragging, dragInput, dragStart, startPos
     gui.InputBegan:Connect(function(input)
@@ -153,7 +179,7 @@ end
 MakeDraggable(WatermarkFrame)
 MakeDraggable(TargetHudFrame)
 
--- Оптимизированный FPS/Ping апдейтер
+-- Оптимизированный FPS/Ping апдейтер[cite: 1]
 local frameCount, lastUpdate = 0, os.clock()
 RunService.RenderStepped:Connect(function()
     frameCount = frameCount + 1
@@ -168,7 +194,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- TARGET ESP ИНТЕГРАЦИЯ
+-- TARGET ESP ИНТЕГРАЦИЯ[cite: 1]
 ---------------------------------------------------------
 local MARKER_IMAGE = "rbxassetid://114677874909839"
 local SCALE = 2.6
@@ -357,6 +383,23 @@ local Options = Fluent.Options
 local MainFolder = Instance.new("Folder", Workspace)
 MainFolder.Name = "SakuraCheatFolder"
 
+-- Предикт полета предметов (Projectile Prediction)
+local PredictionFolder = Instance.new("Folder", Workspace)
+PredictionFolder.Name = "PredictionFolder"
+local predictionDots = {}
+for i = 1, 35 do
+    local dot = Instance.new("Part", PredictionFolder)
+    dot.Name = "PredDot"
+    dot.Shape = Enum.PartType.Ball
+    dot.Size = Vector3.new(0.35, 0.35, 0.35)
+    dot.Material = Enum.Material.Neon
+    dot.Color = Color3.fromRGB(0, 255, 255)
+    dot.Anchored = true
+    dot.CanCollide = false
+    dot.Transparency = 1
+    table.insert(predictionDots, dot)
+end
+
 local petals_pool = {}
 local function resetPetal(part, hrpPos)
     local randX = math.random(-120, 120)
@@ -484,6 +527,64 @@ local function applySkybox()
     end
 end
 
+-- Переменные для RGB цикла
+local rgbHue = 0
+
+-- Функция обновления Ангельских крыльев (Auras)
+local function updateAngelWings()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart")
+    if not torso then return end
+    
+    local oldWings = char:FindFirstChild("CustomAngelWingsModel")
+    if oldWings then oldWings:Destroy() end
+    
+    if Options.AngelWingsToggle and Options.AngelWingsToggle.Value then
+        local wingsModel = Instance.new("Model", char)
+        wingsModel.Name = "CustomAngelWingsModel"
+        
+        local wColor = Options.AngelWingsColor and Options.AngelWingsColor.Value or Color3.fromRGB(255, 255, 255)
+        
+        for i = -1, 1, 2 do
+            local wingPart = Instance.new("Part", wingsModel)
+            wingPart.Size = Vector3.new(0.4, 2.8, 1.5)
+            wingPart.Material = Enum.Material.Neon
+            wingPart.Color = wColor
+            wingPart.Transparency = 0.1
+            wingPart.CanCollide = false
+            wingPart.Massless = true
+            
+            local weld = Instance.new("Weld", wingPart)
+            weld.Part0 = torso
+            weld.Part1 = wingPart
+            weld.C0 = CFrame.new(i * 0.8, 0.5, 0.6) * CFrame.Angles(0, 0, i * math.rad(25))
+            
+            local wingPart2 = Instance.new("Part", wingsModel)
+            wingPart2.Size = Vector3.new(0.3, 2.2, 1.2)
+            wingPart2.Material = Enum.Material.Neon
+            wingPart2.Color = wColor
+            wingPart2.Transparency = 0.2
+            wingPart2.CanCollide = false
+            wingPart2.Massless = true
+            
+            local weld2 = Instance.new("Weld", wingPart2)
+            weld2.Part0 = torso
+            weld2.Part1 = wingPart2
+            weld2.C0 = CFrame.new(i * 1.2, 0.8, 0.5) * CFrame.Angles(0, 0, i * math.rad(45))
+        end
+        
+        local pl = Instance.new("PointLight", torso)
+        pl.Name = "WingsGlow"
+        pl.Color = wColor
+        pl.Range = 12
+        pl.Brightness = 2.5
+    else
+        local pl = torso:FindFirstChild("WingsGlow")
+        if pl then pl:Destroy() end
+    end
+end
+
 local function applyVisuals()
     pcall(function()
         applySkybox()
@@ -515,8 +616,12 @@ local function applyVisuals()
             local hatPart = Instance.new("Part", char)
             hatPart.Name = "CustomChinaHat"
             hatPart.Size = Vector3.new(3, 1, 3)
-            hatPart.Color = Options.ChinaHatColorPicker and Options.ChinaHatColorPicker.Value or Color3.fromRGB(255, 255, 255)
-            hatPart.Material = Enum.Material.Neon
+            local hatColor = Options.ChinaHatColorPicker and Options.ChinaHatColorPicker.Value or Color3.fromRGB(255, 255, 255)
+            if Options.ChinaHatRGBToggle and Options.ChinaHatRGBToggle.Value then
+                hatColor = Color3.fromHSV(rgbHue, 1, 1)
+            end
+            hatPart.Color = hatColor
+            hatPart.Material = Enum.Material.Neon -- Свечение шляпы
             hatPart.Transparency = Options.HatTransSlider and Options.HatTransSlider.Value or 0
             hatPart.CanCollide = false
             hatPart.Massless = true
@@ -532,6 +637,13 @@ local function applyVisuals()
             weld.Part0 = head
             weld.Part1 = hatPart
             weld.C0 = CFrame.new(0, 1.1 + (hHeight * 0.1), 0)
+            
+            -- Подсветка шляпы для эффекта свечения (Bloom)
+            local pl = Instance.new("PointLight", hatPart)
+            pl.Name = "HatGlow"
+            pl.Color = hatColor
+            pl.Range = 10
+            pl.Brightness = 2
         end
         
         local oldSmoke = hrp:FindFirstChild("CustomCheatSmoke")
@@ -559,6 +671,13 @@ local function applyVisuals()
             local targets = {}
             local pType = Options.TrailPartDropdown and Options.TrailPartDropdown.Value or "Ноги"
             local tColor = Options.TrailColorPicker and Options.TrailColorPicker.Value or Color3.fromRGB(255, 150, 200)
+            if Options.TrailRGBToggle and Options.TrailRGBToggle.Value then
+                tColor = Color3.fromHSV(rgbHue, 1, 1)
+            end
+            local tLifetime = Options.TrailLifetimeSlider and Options.TrailLifetimeSlider.Value or 0.4
+            local tWidthStart = Options.TrailWidthStart and Options.TrailWidthStart.Value or 0.6
+            local tWidthEnd = Options.TrailWidthEnd and Options.TrailWidthEnd.Value or 0
+            local tEmission = Options.TrailEmissionSlider and Options.TrailEmissionSlider.Value or 1 -- Максимальное свечение
             
             if pType == "Ноги" or pType == "Всё" then
                 table.insert(targets, char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLowerLeg"))
@@ -580,27 +699,102 @@ local function applyVisuals()
                     trail.Name = "CustomCheatTrail"
                     trail.Texture = "rbxassetid://6554471015"
                     trail.Color = ColorSequence.new(tColor)
-                    trail.Lifetime = 0.4
-                    trail.WidthScale = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0)})
-                    trail.LightEmission = 0.5
+                    trail.Lifetime = tLifetime
+                    trail.WidthScale = NumberSequence.new({NumberSequenceKeypoint.new(0, tWidthStart), NumberSequenceKeypoint.new(1, tWidthEnd)})
+                    trail.LightEmission = tEmission -- Включает яркое свечение трейла
                     trail.Attachment0 = a0
                     trail.Attachment1 = a1
                     
                     local pl = Instance.new("PointLight", p)
                     pl.Name = "CheatGlow"
                     pl.Color = tColor
-                    pl.Brightness = 1.5
-                    pl.Range = 6
+                    pl.Brightness = 2
+                    pl.Range = 8
                     pl.Shadows = false
                 end
             end
         end
+
+        updateAngelWings()
     end)
 end
 
-RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function(dt)
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    -- RGB обновление скорости и цветов «на лету» без лагов и пересоздания объектов
+    local rgbSpeed = Options.RGBSpeedSlider and Options.RGBSpeedSlider.Value or 1
+    rgbHue = (rgbHue + dt * (rgbSpeed * 0.1)) % 1
+    local currentRgbColor = Color3.fromHSV(rgbHue, 1, 1)
+
+    if Options.ChinaHatRGBToggle and Options.ChinaHatRGBToggle.Value then
+        local hat = char:FindFirstChild("CustomChinaHat")
+        if hat then
+            hat.Color = currentRgbColor
+            local pl = hat:FindFirstChildOfClass("PointLight")
+            if pl then pl.Color = currentRgbColor end
+        end
+    end
+
+    if Options.TrailRGBToggle and Options.TrailRGBToggle.Value then
+        for _, part in ipairs(char:GetChildren()) do
+            if part:IsA("BasePart") then
+                local trail = part:FindFirstChild("CustomCheatTrail")
+                if trail then
+                    trail.Color = ColorSequence.new(currentRgbColor)
+                end
+                local pl = part:FindFirstChild("CheatGlow")
+                if pl then pl.Color = currentRgbColor end
+            end
+        end
+    end
+
+    if Options.AngelWingsToggle and Options.AngelWingsToggle.Value then
+        local wingsModel = char:FindFirstChild("CustomAngelWingsModel")
+        if wingsModel then
+            for _, p in ipairs(wingsModel:GetChildren()) do
+                if p:IsA("Part") then p.Color = currentRgbColor end
+            end
+        end
+        local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+        if torso then
+            local pl = torso:FindFirstChild("WingsGlow")
+            if pl then pl.Color = currentRgbColor end
+        end
+    end
+
+    -- Предикт полета предметов (Projectile Prediction)
+    if Options.PredictionToggle and Options.PredictionToggle.Value then
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool then
+            local handle = tool:FindFirstChild("Handle") or char.HumanoidRootPart
+            local pos = handle.Position
+            local speed = 75
+            local vel = Camera.CFrame.LookVector * speed + Vector3.new(0, 20, 0)
+            local g = Vector3.new(0, -Workspace.Gravity, 0)
+            
+            for i, dot in ipairs(predictionDots) do
+                local t = i * 0.07
+                local p = pos + vel * t + 0.5 * g * t * t
+                local ray = Workspace:Raycast(p - vel * 0.07, vel * 0.07)
+                if ray then
+                    dot.Position = ray.Position
+                    dot.Transparency = 0
+                    for j = i + 1, #predictionDots do predictionDots[j].Transparency = 1 end
+                    break
+                else
+                    dot.Position = p
+                    dot.Transparency = (i / #predictionDots) * 0.4
+                end
+            end
+        else
+            for _, dot in ipairs(predictionDots) do dot.Transparency = 1 end
+        end
+    else
+        for _, dot in ipairs(predictionDots) do dot.Transparency = 1 end
+    end
+
     local hrpPos = char.HumanoidRootPart.Position
     local ct = tick()
     
@@ -619,7 +813,83 @@ end)
 LocalPlayer.CharacterAdded:Connect(function() task.wait(1) applyVisuals() updatePetalsPool() end)
 
 ---------------------------------------------------------
--- ВКЛАДКИ И ИНТЕГРАЦИЯ НОВЫХ ФУНКЦИЙ
+-- ФУНКЦИИ ЗВУКОВ (Kill & Hit Sound) И ВИЗУАЛОВ
+---------------------------------------------------------
+local KillSoundIDs = {
+    ["Skeet"] = "rbxassetid://5623030740",
+    ["Rust"] = "rbxassetid://232127600",
+    ["Headshot"] = "rbxassetid://286937415",
+    ["ID 10521781"] = "rbxassetid://105217813317021",
+    ["ID 81978686"] = "rbxassetid://81978686042843",
+    ["ID 70833715"] = "rbxassetid://70833715990270",
+    ["ID 11188227"] = "rbxassetid://111882272975668",
+    ["ID 47641090"] = "rbxassetid://4764109000",
+    ["ID 13524134"] = "rbxassetid://135241348240219"
+}
+
+local HitSoundID = "rbxassetid://137614946252008"
+
+local function PlayKillSound()
+    if Options.KillSoundToggle and Options.KillSoundToggle.Value then
+        local soundName = Options.KillSoundDropdown and Options.KillSoundDropdown.Value or "Skeet"
+        local soundId = KillSoundIDs[soundName] or KillSoundIDs["Skeet"]
+        local s = Instance.new("Sound")
+        s.SoundId = soundId
+        s.Volume = Options.KillSoundVolume and Options.KillSoundVolume.Value or 1
+        s.Parent = SoundService
+        s:Play()
+        game:GetService("Debris"):AddItem(s, 3)
+    end
+end
+
+local function PlayHitSound()
+    if Options.HitSoundToggle and Options.HitSoundToggle.Value then
+        local s = Instance.new("Sound")
+        s.SoundId = HitSoundID
+        s.Volume = Options.HitSoundVolume and Options.HitSoundVolume.Value or 1
+        s.Parent = SoundService
+        s:Play()
+        game:GetService("Debris"):AddItem(s, 3)
+    end
+end
+
+local function TriggerKillEffectsVisuals()
+    local duration = Options.KillEffectDuration and Options.KillEffectDuration.Value or 0.6
+    
+    task.spawn(function()
+        if Options.KillEffectToggle and Options.KillEffectToggle.Value then
+            TintOverlay.Visible = true
+            TintOverlay.BackgroundColor3 = Options.KillEffectColor and Options.KillEffectColor.Value or Color3.fromRGB(255, 0, 0)
+            local maxTrans = Options.KillEffectTransparency and Options.KillEffectTransparency.Value or 0.4
+            TintOverlay.BackgroundTransparency = maxTrans
+            TweenService:Create(TintOverlay, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+        else
+            TintOverlay.Visible = false
+        end
+        
+        if Options.VignetteToggle and Options.VignetteToggle.Value then
+            VignetteOverlay.Visible = true
+            VignetteOverlay.ImageColor3 = Options.VignetteColor and Options.VignetteColor.Value or Color3.fromRGB(0, 0, 0)
+            local maxInten = Options.VignetteIntensity and Options.VignetteIntensity.Value or 0.8
+            VignetteOverlay.ImageTransparency = 1 - maxInten
+            TweenService:Create(VignetteOverlay, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 1}):Play()
+        else
+            VignetteOverlay.Visible = false
+        end
+        
+        task.wait(duration)
+        TintOverlay.Visible = false
+        VignetteOverlay.Visible = false
+    end)
+end
+
+local function TriggerKillEffects()
+    PlayKillSound()
+    TriggerKillEffectsVisuals()
+end
+
+---------------------------------------------------------
+-- ВКЛАДКИ И ИНТЕГРАЦИЯ ФУНКЦИЙ
 ---------------------------------------------------------
 local SecHitbox = Tabs.Hitbox:AddSection("Hitbox Expander")
 SecHitbox:AddToggle("HitboxToggle", { Title = "Включить Hitbox", Default = false })
@@ -628,7 +898,7 @@ SecHitbox:AddSlider("HitboxSize", { Title = "Размер (Size)", Default = 25,
 SecHitbox:AddSlider("HitboxTrans", { Title = "Прозрачность", Default = 0.9, Min = 0, Max = 1, Rounding = 2 })
 SecHitbox:AddColorpicker("HitboxColor", { Title = "Цвет Hitbox", Default = Color3.fromRGB(255, 0, 0) })
 
--- WHILTELIST ДЛЯ ХИТБОКСОВ
+-- WHITELIST ДЛЯ ХИТБОКСОВ[cite: 1]
 local HitboxWhitelist = {}
 local SecHitboxWhitelist = Tabs.Hitbox:AddSection("Whitelist хитбоксов")
 SecHitboxWhitelist:AddInput("WhitelistInput", {
@@ -640,7 +910,6 @@ SecHitboxWhitelist:AddInput("WhitelistInput", {
     Finished = true,
     Callback = function(value)
         if value == "" then return end
-        -- Проверяем наличие, если есть - удаляем, если нет - добавляем
         if HitboxWhitelist[value] then
             HitboxWhitelist[value] = nil
             Fluent:Notify({ Title = "Whitelist", Content = "Удален из вайтлиста: " .. value, Duration = 2 })
@@ -651,22 +920,70 @@ SecHitboxWhitelist:AddInput("WhitelistInput", {
     end
 })
 
--- ЧАМСЫ (НЕ ЛОЖАТСЯ НА ХИТБОКСЫ, ТАК КАК ПРИМЕНЯЮТСЯ ТОЛЬКО НА КОНЕЧНОСТИ/ТОРС/ГОЛОВУ И ИГНОРИРУЮТ HumanoidRootPart)
+-- ЧАМСЫ[cite: 1]
 local SecChams = Tabs.Visuals:AddSection("Чамсы (Без хитбоксов)")
 SecChams:AddToggle("ChamsToggle", { Title = "Включить Чамсы", Default = false })
 SecChams:AddColorpicker("ChamsColor", { Title = "Цвет Чамсов", Default = Color3.fromRGB(150, 50, 255) })
 SecChams:AddSlider("ChamsTrans", { Title = "Прозрачность Чамсов", Default = 0.5, Min = 0, Max = 1, Rounding = 2 })
 
+-- АУРЫ (ANGEL WINGS)
+local SecAuras = Tabs.Visuals:AddSection("Auras (Ангельские крылья)")
+SecAuras:AddToggle("AngelWingsToggle", { Title = "Включить Angel Wings", Default = false }):OnChanged(function() applyVisuals() end)
+SecAuras:AddColorpicker("AngelWingsColor", { Title = "Цвет Крыьев", Default = Color3.fromRGB(255, 255, 255), Callback = function() applyVisuals() end })
+
+-- KILL EFFECT, KILL SOUND И HIT SOUND СЕКЦИЯ
+local SecKillEffects = Tabs.Visuals:AddSection("Kill Effect, Kill & Hit Sounds")
+SecKillEffects:AddToggle("KillEffectToggle", { Title = "Включить Тинт экрана", Default = true })
+SecKillEffects:AddColorpicker("KillEffectColor", { Title = "Цвет Тинта", Default = Color3.fromRGB(255, 0, 0) })
+SecKillEffects:AddSlider("KillEffectTransparency", { Title = "Прозрачность Тинта", Default = 0.4, Min = 0.1, Max = 1, Rounding = 2 })
+
+SecKillEffects:AddToggle("VignetteToggle", { Title = "Включить Виньетку по углам", Default = true })
+SecKillEffects:AddColorpicker("VignetteColor", { Title = "Цвет Виньетки", Default = Color3.fromRGB(0, 0, 0) })
+SecKillEffects:AddSlider("VignetteIntensity", { Title = "Интенсивность Виньетки", Default = 0.8, Min = 0.1, Max = 1, Rounding = 2 })
+
+SecKillEffects:AddSlider("KillEffectDuration", { Title = "Длительность эффекта (сек)", Default = 0.6, Min = 0.2, Max = 2.0, Rounding = 1 })
+
+SecKillEffects:AddToggle("KillSoundToggle", { Title = "Включить Kill Sound", Default = true })
+SecKillEffects:AddDropdown("KillSoundDropdown", {
+    Title = "Звук при убийстве",
+    Values = {"Skeet", "Rust", "Headshot", "ID 10521781", "ID 81978686", "ID 70833715", "ID 11188227", "ID 47641090", "ID 13524134"},
+    Default = "Skeet"
+})
+SecKillEffects:AddSlider("KillSoundVolume", { Title = "Громкость Kill Sound", Default = 1, Min = 0.1, Max = 3, Rounding = 1 })
+
+SecKillEffects:AddToggle("HitSoundToggle", { Title = "Включить Hit Sound", Default = true })
+SecKillEffects:AddSlider("HitSoundVolume", { Title = "Громкость Hit Sound", Default = 1, Min = 0.1, Max = 3, Rounding = 1 })
+
+-- Кнопки тестирования
+SecKillEffects:AddButton({
+    Title = "Тест Kill Sound",
+    Description = "Проиграть выбранный звук убийства",
+    Callback = function() PlayKillSound() end
+})
+
+SecKillEffects:AddButton({
+    Title = "Тест Hit Sound",
+    Description = "Проиграть звук хитсаунда",
+    Callback = function() PlayHitSound() end
+})
+
+SecKillEffects:AddButton({
+    Title = "Тест Kill Effect",
+    Description = "Воспроизвести тинт и виньетку на весь экран",
+    Callback = function() TriggerKillEffectsVisuals() end
+})
+
 local SecTargetEsp = Tabs.Visuals:AddSection("Target ESP Marker")
 SecTargetEsp:AddToggle("TargetEspToggle", { Title = "Включить Target ESP", Default = true, Callback = function(v) targetesp.Enabled = v end })
 SecTargetEsp:AddColorpicker("TargetEspColor", { Title = "Цвет Target ESP", Default = Color3.fromRGB(255, 255, 255), Callback = function(v) targetesp.Color = v end })
 
-local SecCamera = Tabs.Visuals:AddSection("Камера (FOV & Aspect Ratio)")
+local SecCamera = Tabs.Visuals:AddSection("Камера (FOV & Aspect Ratio & Prediction)")
 SecCamera:AddToggle("AspectToggle", { Title = "Включить Aspect Ratio", Default = false })
 SecCamera:AddSlider("AspectX", { Title = "Растяг по X (Ширина)", Default = 1, Min = 0.1, Max = 3, Rounding = 2 })
 SecCamera:AddSlider("AspectY", { Title = "Растяг по Y (Высота)", Default = 0.65, Min = 0.1, Max = 3, Rounding = 2 })
 SecCamera:AddToggle("FovToggle", { Title = "Изменить FOV", Default = false })
 SecCamera:AddSlider("FOVValue", { Title = "Значение FOV", Default = 70, Min = 10, Max = 120, Rounding = 0 })
+SecCamera:AddToggle("PredictionToggle", { Title = "Предикт полета предметов", Default = true })
 
 local SecSmoothCam = Tabs.Visuals:AddSection("Smooth Camera")
 SecSmoothCam:AddToggle("SmoothCamToggle", { Title = "Включить Smooth Cam", Default = false })
@@ -693,17 +1010,25 @@ SecLighting:AddColorpicker("AmbientColorPicker", { Title = "Цвет Ambient", D
 SecLighting:AddColorpicker("OutdoorAmbientColorPicker", { Title = "Цвет Outdoor Ambient", Default = Color3.fromRGB(50, 40, 60) })
 SecLighting:AddColorpicker("FogColorPicker", { Title = "Цвет Тумана", Default = Color3.fromRGB(25, 20, 30), Callback = function() applyVisuals() end })
 
-local SecHat = Tabs.Visuals:AddSection("China Hat (Шляпа)")
+local SecHat = Tabs.Visuals:AddSection("China Hat (Шляпа + RGB + Glow)")
 SecHat:AddToggle("ChinaHatToggle", { Title = "Включить China Hat", Default = true }):OnChanged(function() applyVisuals() end)
+SecHat:AddToggle("ChinaHatRGBToggle", { Title = "RGB режим Шляпы", Default = false }):OnChanged(function() applyVisuals() end)
 SecHat:AddSlider("HatSizeSlider", { Title = "Ширина/Масштаб Шляпы", Default = 3.5, Min = 1.0, Max = 8.0, Rounding = 1 }):OnChanged(function() applyVisuals() end)
 SecHat:AddSlider("HatHeightSlider", { Title = "Высота конуса Шляпы", Default = 1.8, Min = 0.5, Max = 5.0, Rounding = 1 }):OnChanged(function() applyVisuals() end)
 SecHat:AddSlider("HatTransSlider", { Title = "Прозрачность Шляпы (0-1)", Default = 0, Min = 0, Max = 1, Rounding = 2 }):OnChanged(function() applyVisuals() end)
 SecHat:AddColorpicker("ChinaHatColorPicker", { Title = "Цвет Шляпы", Default = Color3.fromRGB(255, 255, 255), Callback = function() applyVisuals() end })
 
-local SecTrails = Tabs.Visuals:AddSection("Трейлы и Эффекты")
+-- ТРЕЙЛЫ И ЭФФЕКТЫ (С RGB, СКОРОСТЬЮ И СВЕЧЕНИЕМ)
+local SecTrails = Tabs.Visuals:AddSection("Гибкие Трейлы ( + RGB + Glow )")
 SecTrails:AddToggle("TrailToggle", { Title = "Включить Трейлы", Default = true }):OnChanged(function() applyVisuals() end)
+SecTrails:AddToggle("TrailRGBToggle", { Title = "RGB режим Трейлов", Default = false }):OnChanged(function() applyVisuals() end)
+SecTrails:AddSlider("RGBSpeedSlider", { Title = "Скорость RGB", Default = 1, Min = 0.1, Max = 5.0, Rounding = 1 })
 SecTrails:AddDropdown("TrailPartDropdown", { Title = "Источник Трейлов", Values = {"Ноги", "Руки", "Торс", "Всё"}, Default = "Ноги", Callback = function() applyVisuals() end })
 SecTrails:AddColorpicker("TrailColorPicker", { Title = "Цвет Трейлов", Default = Color3.fromRGB(255, 150, 200), Callback = function() applyVisuals() end })
+SecTrails:AddSlider("TrailLifetimeSlider", { Title = "Время жизни (Lifetime)", Default = 0.4, Min = 0.1, Max = 2.0, Rounding = 2 }):OnChanged(function() applyVisuals() end)
+SecTrails:AddSlider("TrailWidthStart", { Title = "Ширина в начале", Default = 0.6, Min = 0.1, Max = 3.0, Rounding = 1 }):OnChanged(function() applyVisuals() end)
+SecTrails:AddSlider("TrailWidthEnd", { Title = "Ширина в конце", Default = 0, Min = 0, Max = 1.0, Rounding = 2 }):OnChanged(function() applyVisuals() end)
+SecTrails:AddSlider("TrailEmissionSlider", { Title = "Свечение (Light Emission)", Default = 1, Min = 0, Max = 1, Rounding = 2 }):OnChanged(function() applyVisuals() end)
 SecTrails:AddToggle("SmokeToggle", { Title = "Кастомный Дым", Default = true }):OnChanged(function() applyVisuals() end)
 
 local SecSakuraLightning = Tabs.Visuals:AddSection("Лепестки Сакуры и Молнии")
@@ -717,7 +1042,7 @@ local MoveSection = Tabs.Movement:AddSection("Player & Speed Function")
 local RageSection = Tabs.Movement:AddSection("Rage Movement")
 local TargetSection = Tabs.Movement:AddSection("Target Strafe (HvH)")
 
--- ФУНКЦИЯ SPEED С ТРЕМЯ МЕХАНИКАМИ
+-- SPEED С ТРЕМЯ МЕХАНИКАМИ[cite: 1]
 MoveSection:AddToggle("SpeedToggle", { Title = "Включить Speed", Default = false })
 MoveSection:AddDropdown("SpeedMode", {
     Title = "Режим Speed",
@@ -772,6 +1097,53 @@ Players.PlayerRemoving:Connect(function(p)
 end)
 for _, p in ipairs(Players:GetPlayers()) do table.insert(cachedPlayers, p) end
 
+---------------------------------------------------------
+-- МОНИТОРИНГ УБИЙСТВ И ПОЛУЧЕНИЯ УРОНА (ХИТ-САУНД)
+---------------------------------------------------------
+local function MonitorPlayer(player)
+    if player == LocalPlayer then return end
+    local function onCharacterAdded(char)
+        local hum = char:WaitForChild("Humanoid", 5)
+        if hum then
+            local lastHp = hum.Health
+            hum.HealthChanged:Connect(function(newHp)
+                if newHp < lastHp then
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("HumanoidRootPart") then
+                        if (char.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 150 then
+                            PlayHitSound()
+                        end
+                    end
+                end
+                lastHp = newHp
+            end)
+            
+            hum.Died:Connect(function()
+                local creatorTag = char:FindFirstChild("creator")
+                local isMyKill = false
+                if creatorTag and creatorTag.Value == LocalPlayer then
+                    isMyKill = true
+                else
+                    local myChar = LocalPlayer.Character
+                    if myChar and myChar:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("HumanoidRootPart") then
+                        if (char.HumanoidRootPart.Position - myChar.HumanoidRootPart.Position).Magnitude < 45 then
+                            isMyKill = true
+                        end
+                    end
+                end
+                
+                if isMyKill then
+                    TriggerKillEffects()
+                end
+            end)
+        end
+    end
+    if player.Character then onCharacterAdded(player.Character) end
+    player.CharacterAdded:Connect(onCharacterAdded)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do MonitorPlayer(p) end
+Players.PlayerAdded:Connect(MonitorPlayer)
+
 RunService.Stepped:Connect(function()
     local noclipOn = Options.NoclipToggle and Options.NoclipToggle.Value
     local antiFlingOn = Options.AntiFlingToggle and Options.AntiFlingToggle.Value
@@ -820,29 +1192,6 @@ local function ShowTargetHudFor(player, duration)
     HudShowTime = os.clock() + duration
 end
 
-local function MonitorPlayerHealth(player)
-    if player == LocalPlayer then return end
-    local function onCharacterAdded(char)
-        local hum = char:WaitForChild("Humanoid", 5)
-        if hum then
-            local lastHp = hum.Health
-            hum.HealthChanged:Connect(function(newHp)
-                if newHp < lastHp then
-                    if Options.TargetHUDToggle and Options.TargetHUDToggle.Value then
-                        ShowTargetHudFor(player, 3)
-                    end
-                end
-                lastHp = newHp
-            end)
-        end
-    end
-    if player.Character then onCharacterAdded(player.Character) end
-    player.CharacterAdded:Connect(onCharacterAdded)
-end
-
-for _, p in ipairs(Players:GetPlayers()) do MonitorPlayerHealth(p) end
-Players.PlayerAdded:Connect(MonitorPlayerHealth)
-
 local smoothedPosition = nil
 
 RunService.RenderStepped:Connect(function(deltaTime)
@@ -856,7 +1205,7 @@ RunService.RenderStepped:Connect(function(deltaTime)
         Camera.FieldOfView = Options.FOVValue.Value
     end
     
-    -- ИСПРАВЛЕННЫЙ ASPECT RATIO (без сброса углов через CFrame.fromMatrix)
+    -- ASPECT RATIO (фиксированный метод через CFrame.fromMatrix)[cite: 1]
     if Options.AspectToggle and Options.AspectToggle.Value then
         local scaleX = Options.AspectX and Options.AspectX.Value or 1
         local scaleY = Options.AspectY and Options.AspectY.Value or 0.65
@@ -900,7 +1249,7 @@ RunService.RenderStepped:Connect(function(deltaTime)
         smoothedPosition = nil
     end
 
-    -- ХИТБОКСЫ С УЧЕТОМ WHILTELIST
+    -- ХИТБОКСЫ С УЧЕТОМ WHITELIST[cite: 1]
     if Options.HitboxToggle and Options.HitboxToggle.Value then
         local targetSize = Options.HitboxSize.Value
         local targetTrans = Options.HitboxTrans.Value
@@ -912,7 +1261,6 @@ RunService.RenderStepped:Connect(function(deltaTime)
                 local tHum = player.Character:FindFirstChild("Humanoid")
                 local hrp = player.Character.HumanoidRootPart
                 
-                -- Проверка на вайтлист (по нику или DisplayName)
                 local isWhitelisted = HitboxWhitelist[player.Name] or HitboxWhitelist[player.DisplayName]
 
                 if tHum and tHum.Health > 0 and not isWhitelisted then
@@ -947,7 +1295,7 @@ RunService.RenderStepped:Connect(function(deltaTime)
         end
     end
 
-    -- ЧАМСЫ (НЕ ЗАТРАГИВАЮТ HumanoidRootPart, ЧТОБЫ НЕ ПЕРЕСЕКАТЬСЯ С ХИТБОКСАМИ)
+    -- ЧАМСЫ (НЕ ЗАТРАГИВАЮТ HumanoidRootPart)[cite: 1]
     for _, player in ipairs(cachedPlayers) do
         if player ~= LocalPlayer and player.Character then
             local ch = player.Character
@@ -1042,24 +1390,21 @@ RunService.RenderStepped:Connect(function(deltaTime)
     end
 
     if not targetActive then
-        -- ОБРАБОТКА ФУНКЦИИ SPEED С ТРЕМЯ МЕХАНИКАМИ
+        -- SPEED ФУНКЦИЯ (3 МЕХАНИКИ)[cite: 1]
         if Options.SpeedToggle and Options.SpeedToggle.Value and not Options.FlyToggle.Value and not Options.StrafeToggle.Value then
             local speedVal = Options.SpeedSlider.Value
             local mode = Options.SpeedMode.Value
             local moveDir = hum.MoveDirection
 
             if mode == "Velocity" then
-                -- 1. Механика через Velocity
                 if moveDir.Magnitude > 0 then
                     hrp.AssemblyLinearVelocity = Vector3.new(moveDir.X * speedVal, hrp.AssemblyLinearVelocity.Y, moveDir.Z * speedVal)
                 end
             elseif mode == "CFrame" then
-                -- 2. Механика через CFrame
                 if moveDir.Magnitude > 0 then
                     hrp.CFrame = hrp.CFrame + (moveDir * (speedVal * deltaTime))
                 end
             elseif mode == "Bypass (Micro-Step)" then
-                -- 3. Механика Спидхака на ваш выбор (Микротелепорт / Импульс обхода античита)
                 if moveDir.Magnitude > 0 then
                     local stepDistance = (speedVal * 0.75) * deltaTime
                     hrp.CFrame = hrp.CFrame + (moveDir * stepDistance)
@@ -1175,7 +1520,7 @@ InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 
 Window:SelectTab(1)
-Fluent:Notify({ Title = "Готово", Content = "Speed (3 механики), Whitelist и Чамсы успешно добавлены!", Duration = 3 })
+Fluent:Notify({ Title = "Готово", Content = "Трейлы, свечение (Glow) и ауры успешно обновлены!", Duration = 3 })
 SaveManager:LoadAutoloadConfig()
 
 applyVisuals()
