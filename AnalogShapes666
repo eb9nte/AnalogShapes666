@@ -1,4 +1,4 @@
--- Загрузка библиотек с защитой pcall[cite: 1]
+-- Загрузка библиотек с защитой pcall
 local success, Fluent = pcall(function()
     return loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 end)
@@ -25,11 +25,9 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
 
--- Кэширование математических функций для скорости[cite: 1]
 local math_sin, math_cos, math_rad, math_round, math_exp = math.sin, math.cos, math.rad, math.round, math.exp
 local tick = tick
 
--- Настройка палитры (Liquid Glass)[cite: 1]
 if Fluent.Themes and Fluent.Themes.Dark then
     Fluent.Themes.Dark.Accent = Color3.fromRGB(255, 255, 255)
     Fluent.Themes.Dark.TitleText = Color3.fromRGB(255, 255, 255)
@@ -48,6 +46,18 @@ local Window = Fluent:CreateWindow({
 
 if Window.Frame then
     Window.Frame.BackgroundTransparency = 0.35
+    
+    local MenuBgImage = Instance.new("ImageLabel")
+    MenuBgImage.Name = "CustomMenuBackground"
+    MenuBgImage.Size = UDim2.new(1, 0, 1, 0)
+    MenuBgImage.Position = UDim2.new(0, 0, 0, 0)
+    MenuBgImage.BackgroundTransparency = 1
+    MenuBgImage.Image = "rbxassetid://14604873799"
+    MenuBgImage.ImageTransparency = 0.25
+    MenuBgImage.ScaleType = Enum.ScaleType.Slice
+    MenuBgImage.ZIndex = 0
+    MenuBgImage.Parent = Window.Frame
+
     local GlassStroke = Instance.new("UIStroke")
     GlassStroke.Color = Color3.fromRGB(255, 255, 255)
     GlassStroke.Thickness = 1.2
@@ -62,7 +72,7 @@ end
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "s3d3p3shs_GUI"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true -- Растягивает на абсолютный полный экран под все разрешения[cite: 1]
+ScreenGui.IgnoreGuiInset = true
 local suc, parent = pcall(function()
     return gethui and gethui() or CoreGui
 end)
@@ -132,7 +142,6 @@ HpPulse.BackgroundTransparency = 1
 HpPulse.BorderSizePixel = 0
 Instance.new("UICorner", HpPulse).CornerRadius = UDim.new(1, 0)
 
--- Полноэкранный Тинт экрана[cite: 1]
 local TintOverlay = Instance.new("Frame")
 TintOverlay.Name = "TintOverlay"
 TintOverlay.Size = UDim2.new(1, 0, 1, 0)
@@ -143,7 +152,6 @@ TintOverlay.Visible = false
 TintOverlay.ZIndex = 998
 TintOverlay.Parent = ScreenGui
 
--- Полноэкранная Виньетка по углам[cite: 1]
 local VignetteOverlay = Instance.new("ImageLabel")
 VignetteOverlay.Name = "VignetteOverlay"
 VignetteOverlay.Size = UDim2.new(1, 0, 1, 0)
@@ -179,7 +187,6 @@ end
 MakeDraggable(WatermarkFrame)
 MakeDraggable(TargetHudFrame)
 
--- Оптимизированный FPS/Ping апдейтер[cite: 1]
 local frameCount, lastUpdate = 0, os.clock()
 RunService.RenderStepped:Connect(function()
     frameCount = frameCount + 1
@@ -194,7 +201,45 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- TARGET ESP ИНТЕГРАЦИЯ[cite: 1]
+-- 2D ESP СИСТЕМА
+---------------------------------------------------------
+local ESP_Cache = {}
+
+local function CreateDrawingObject(objType, properties)
+    local obj = Drawing.new(objType)
+    for k, v in pairs(properties) do
+        obj[k] = v
+    end
+    return obj
+end
+
+local function GetOrAddESP(player)
+    if ESP_Cache[player] then return ESP_Cache[player] end
+    local esp = {
+        Box = CreateDrawingObject("Square", {Thickness = 1.5, Filled = false, Visible = false}),
+        BoxOutline = CreateDrawingObject("Square", {Thickness = 2.5, Filled = false, Visible = false, Color = Color3.new(0,0,0)}),
+        Name = CreateDrawingObject("Text", {Size = 13, Center = true, Outline = true, Visible = false, Color = Color3.new(1,1,1)}),
+        HealthBar = CreateDrawingObject("Line", {Thickness = 2, Visible = false}),
+        HealthBarOutline = CreateDrawingObject("Line", {Thickness = 4, Visible = false, Color = Color3.new(0,0,0)}),
+        Tracer = CreateDrawingObject("Line", {Thickness = 1, Visible = false})
+    }
+    ESP_Cache[player] = esp
+    return esp
+end
+
+local function RemoveESP(player)
+    if ESP_Cache[player] then
+        for _, obj in pairs(ESP_Cache[player]) do
+            pcall(function() obj:Remove() end)
+        end
+        ESP_Cache[player] = nil
+    end
+end
+
+Players.PlayerRemoving:Connect(RemoveESP)
+
+---------------------------------------------------------
+-- TARGET ESP ИНТЕГРАЦИЯ
 ---------------------------------------------------------
 local MARKER_IMAGE = "rbxassetid://114677874909839"
 local SCALE = 2.6
@@ -383,23 +428,6 @@ local Options = Fluent.Options
 local MainFolder = Instance.new("Folder", Workspace)
 MainFolder.Name = "SakuraCheatFolder"
 
--- Предикт полета предметов (Projectile Prediction)
-local PredictionFolder = Instance.new("Folder", Workspace)
-PredictionFolder.Name = "PredictionFolder"
-local predictionDots = {}
-for i = 1, 35 do
-    local dot = Instance.new("Part", PredictionFolder)
-    dot.Name = "PredDot"
-    dot.Shape = Enum.PartType.Ball
-    dot.Size = Vector3.new(0.35, 0.35, 0.35)
-    dot.Material = Enum.Material.Neon
-    dot.Color = Color3.fromRGB(0, 255, 255)
-    dot.Anchored = true
-    dot.CanCollide = false
-    dot.Transparency = 1
-    table.insert(predictionDots, dot)
-end
-
 local petals_pool = {}
 local function resetPetal(part, hrpPos)
     local randX = math.random(-120, 120)
@@ -527,10 +555,8 @@ local function applySkybox()
     end
 end
 
--- Переменные для RGB цикла
 local rgbHue = 0
 
--- Функция обновления Ангельских крыльев (Auras)
 local function updateAngelWings()
     local char = LocalPlayer.Character
     if not char then return end
@@ -621,7 +647,7 @@ local function applyVisuals()
                 hatColor = Color3.fromHSV(rgbHue, 1, 1)
             end
             hatPart.Color = hatColor
-            hatPart.Material = Enum.Material.Neon -- Свечение шляпы
+            hatPart.Material = Enum.Material.Neon
             hatPart.Transparency = Options.HatTransSlider and Options.HatTransSlider.Value or 0
             hatPart.CanCollide = false
             hatPart.Massless = true
@@ -638,7 +664,6 @@ local function applyVisuals()
             weld.Part1 = hatPart
             weld.C0 = CFrame.new(0, 1.1 + (hHeight * 0.1), 0)
             
-            -- Подсветка шляпы для эффекта свечения (Bloom)
             local pl = Instance.new("PointLight", hatPart)
             pl.Name = "HatGlow"
             pl.Color = hatColor
@@ -677,7 +702,7 @@ local function applyVisuals()
             local tLifetime = Options.TrailLifetimeSlider and Options.TrailLifetimeSlider.Value or 0.4
             local tWidthStart = Options.TrailWidthStart and Options.TrailWidthStart.Value or 0.6
             local tWidthEnd = Options.TrailWidthEnd and Options.TrailWidthEnd.Value or 0
-            local tEmission = Options.TrailEmissionSlider and Options.TrailEmissionSlider.Value or 1 -- Максимальное свечение
+            local tEmission = Options.TrailEmissionSlider and Options.TrailEmissionSlider.Value or 1
             
             if pType == "Ноги" or pType == "Всё" then
                 table.insert(targets, char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLowerLeg"))
@@ -701,7 +726,7 @@ local function applyVisuals()
                     trail.Color = ColorSequence.new(tColor)
                     trail.Lifetime = tLifetime
                     trail.WidthScale = NumberSequence.new({NumberSequenceKeypoint.new(0, tWidthStart), NumberSequenceKeypoint.new(1, tWidthEnd)})
-                    trail.LightEmission = tEmission -- Включает яркое свечение трейла
+                    trail.LightEmission = tEmission
                     trail.Attachment0 = a0
                     trail.Attachment1 = a1
                     
@@ -723,7 +748,6 @@ RunService.RenderStepped:Connect(function(dt)
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     
-    -- RGB обновление скорости и цветов «на лету» без лагов и пересоздания объектов
     local rgbSpeed = Options.RGBSpeedSlider and Options.RGBSpeedSlider.Value or 1
     rgbHue = (rgbHue + dt * (rgbSpeed * 0.1)) % 1
     local currentRgbColor = Color3.fromHSV(rgbHue, 1, 1)
@@ -764,37 +788,6 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
-    -- Предикт полета предметов (Projectile Prediction)
-    if Options.PredictionToggle and Options.PredictionToggle.Value then
-        local tool = char:FindFirstChildOfClass("Tool")
-        if tool then
-            local handle = tool:FindFirstChild("Handle") or char.HumanoidRootPart
-            local pos = handle.Position
-            local speed = 75
-            local vel = Camera.CFrame.LookVector * speed + Vector3.new(0, 20, 0)
-            local g = Vector3.new(0, -Workspace.Gravity, 0)
-            
-            for i, dot in ipairs(predictionDots) do
-                local t = i * 0.07
-                local p = pos + vel * t + 0.5 * g * t * t
-                local ray = Workspace:Raycast(p - vel * 0.07, vel * 0.07)
-                if ray then
-                    dot.Position = ray.Position
-                    dot.Transparency = 0
-                    for j = i + 1, #predictionDots do predictionDots[j].Transparency = 1 end
-                    break
-                else
-                    dot.Position = p
-                    dot.Transparency = (i / #predictionDots) * 0.4
-                end
-            end
-        else
-            for _, dot in ipairs(predictionDots) do dot.Transparency = 1 end
-        end
-    else
-        for _, dot in ipairs(predictionDots) do dot.Transparency = 1 end
-    end
-
     local hrpPos = char.HumanoidRootPart.Position
     local ct = tick()
     
@@ -813,7 +806,7 @@ end)
 LocalPlayer.CharacterAdded:Connect(function() task.wait(1) applyVisuals() updatePetalsPool() end)
 
 ---------------------------------------------------------
--- ФУНКЦИИ ЗВУКОВ (Kill & Hit Sound) И ВИЗУАЛОВ
+-- ФУНКЦИИ ЗВУКОВ И ВИЗУАЛОВ
 ---------------------------------------------------------
 local KillSoundIDs = {
     ["Skeet"] = "rbxassetid://5623030740",
@@ -894,13 +887,46 @@ end
 local SecHitbox = Tabs.Hitbox:AddSection("Hitbox Expander")
 SecHitbox:AddToggle("HitboxToggle", { Title = "Включить Hitbox", Default = false })
 SecHitbox:AddToggle("TeamCheckToggle", { Title = "Team Check (Проверка команды)", Default = false })
-SecHitbox:AddSlider("HitboxSize", { Title = "Размер (Size)", Default = 25, Min = 1, Max = 100, Rounding = 1 })
+SecHitbox:AddSlider("HitboxSize", { Title = "Размер (Size) [Слайдер]", Default = 25, Min = 1, Max = 100, Rounding = 1 })
+
+SecHitbox:AddInput("HitboxCustomInput", {
+    Title = "Кастомный размер хитбокса (Ввод числа)",
+    Description = "Введите нужное значение размера и нажмите Enter",
+    Default = "25",
+    Placeholder = "25",
+    Numeric = true,
+    Finished = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num and Options.HitboxSize then
+            Options.HitboxSize:SetValue(num)
+        end
+    end
+})
+
 SecHitbox:AddSlider("HitboxTrans", { Title = "Прозрачность", Default = 0.9, Min = 0, Max = 1, Rounding = 2 })
 SecHitbox:AddColorpicker("HitboxColor", { Title = "Цвет Hitbox", Default = Color3.fromRGB(255, 0, 0) })
 
--- WHITELIST ДЛЯ ХИТБОКСОВ[cite: 1]
 local HitboxWhitelist = {}
 local SecHitboxWhitelist = Tabs.Hitbox:AddSection("Whitelist хитбоксов")
+
+local WhitelistDisplayParagraph = SecHitboxWhitelist:AddParagraph({
+    Title = "Текущий список Whitelist",
+    Content = "Никого нет в вайтлисте."
+})
+
+local function UpdateWhitelistDisplay()
+    local list = {}
+    for name, _ in pairs(HitboxWhitelist) do
+        table.insert(list, name)
+    end
+    if #list > 0 then
+        WhitelistDisplayParagraph:SetDesc("Игроки: " .. table.concat(list, ", "))
+    else
+        WhitelistDisplayParagraph:SetDesc("Никого нет в вайтлисте.")
+    end
+end
+
 SecHitboxWhitelist:AddInput("WhitelistInput", {
     Title = "Никнейм игрока",
     Description = "Введите ник для добавления/удаления из вайтлиста",
@@ -917,21 +943,30 @@ SecHitboxWhitelist:AddInput("WhitelistInput", {
             HitboxWhitelist[value] = true
             Fluent:Notify({ Title = "Whitelist", Content = "Добавлен в вайтлист: " .. value, Duration = 2 })
         end
+        UpdateWhitelistDisplay()
     end
 })
 
--- ЧАМСЫ[cite: 1]
 local SecChams = Tabs.Visuals:AddSection("Чамсы (Без хитбоксов)")
 SecChams:AddToggle("ChamsToggle", { Title = "Включить Чамсы", Default = false })
 SecChams:AddColorpicker("ChamsColor", { Title = "Цвет Чамсов", Default = Color3.fromRGB(150, 50, 255) })
 SecChams:AddSlider("ChamsTrans", { Title = "Прозрачность Чамсов", Default = 0.5, Min = 0, Max = 1, Rounding = 2 })
 
--- АУРЫ (ANGEL WINGS)
+-- 2D ESP СЕКЦИЯ
+local Sec2DESP = Tabs.Visuals:AddSection("2D ESP (Гибкая настройка)")
+Sec2DESP:AddToggle("ESP_Enabled", { Title = "Включить 2D ESP", Default = false })
+Sec2DESP:AddToggle("ESP_Box", { Title = "Отображать боксы (Box)", Default = true })
+Sec2DESP:AddToggle("ESP_Health", { Title = "Полоска здоровья (HP)", Default = true })
+Sec2DESP:AddToggle("ESP_Name", { Title = "Имена игроков (Name)", Default = true })
+Sec2DESP:AddToggle("ESP_Distance", { Title = "Дистанция (Distance)", Default = true })
+Sec2DESP:AddToggle("ESP_Tracers", { Title = "Линии (Tracers)", Default = false })
+Sec2DESP:AddDropdown("ESP_TracerOrigin", { Title = "Точка выхода линий", Values = {"Низ экрана", "Центр экрана"}, Default = "Низ экрана" })
+Sec2DESP:AddColorpicker("ESP_Color", { Title = "Цвет 2D ESP", Default = Color3.fromRGB(255, 255, 255) })
+
 local SecAuras = Tabs.Visuals:AddSection("Auras (Ангельские крылья)")
 SecAuras:AddToggle("AngelWingsToggle", { Title = "Включить Angel Wings", Default = false }):OnChanged(function() applyVisuals() end)
-SecAuras:AddColorpicker("AngelWingsColor", { Title = "Цвет Крыьев", Default = Color3.fromRGB(255, 255, 255), Callback = function() applyVisuals() end })
+SecAuras:AddColorpicker("AngelWingsColor", { Title = "Цвет Крыльев", Default = Color3.fromRGB(255, 255, 255), Callback = function() applyVisuals() end })
 
--- KILL EFFECT, KILL SOUND И HIT SOUND СЕКЦИЯ
 local SecKillEffects = Tabs.Visuals:AddSection("Kill Effect, Kill & Hit Sounds")
 SecKillEffects:AddToggle("KillEffectToggle", { Title = "Включить Тинт экрана", Default = true })
 SecKillEffects:AddColorpicker("KillEffectColor", { Title = "Цвет Тинта", Default = Color3.fromRGB(255, 0, 0) })
@@ -954,7 +989,6 @@ SecKillEffects:AddSlider("KillSoundVolume", { Title = "Громкость Kill S
 SecKillEffects:AddToggle("HitSoundToggle", { Title = "Включить Hit Sound", Default = true })
 SecKillEffects:AddSlider("HitSoundVolume", { Title = "Громкость Hit Sound", Default = 1, Min = 0.1, Max = 3, Rounding = 1 })
 
--- Кнопки тестирования
 SecKillEffects:AddButton({
     Title = "Тест Kill Sound",
     Description = "Проиграть выбранный звук убийства",
@@ -977,13 +1011,12 @@ local SecTargetEsp = Tabs.Visuals:AddSection("Target ESP Marker")
 SecTargetEsp:AddToggle("TargetEspToggle", { Title = "Включить Target ESP", Default = true, Callback = function(v) targetesp.Enabled = v end })
 SecTargetEsp:AddColorpicker("TargetEspColor", { Title = "Цвет Target ESP", Default = Color3.fromRGB(255, 255, 255), Callback = function(v) targetesp.Color = v end })
 
-local SecCamera = Tabs.Visuals:AddSection("Камера (FOV & Aspect Ratio & Prediction)")
+local SecCamera = Tabs.Visuals:AddSection("Камера (FOV & Aspect Ratio)")
 SecCamera:AddToggle("AspectToggle", { Title = "Включить Aspect Ratio", Default = false })
 SecCamera:AddSlider("AspectX", { Title = "Растяг по X (Ширина)", Default = 1, Min = 0.1, Max = 3, Rounding = 2 })
 SecCamera:AddSlider("AspectY", { Title = "Растяг по Y (Высота)", Default = 0.65, Min = 0.1, Max = 3, Rounding = 2 })
 SecCamera:AddToggle("FovToggle", { Title = "Изменить FOV", Default = false })
 SecCamera:AddSlider("FOVValue", { Title = "Значение FOV", Default = 70, Min = 10, Max = 120, Rounding = 0 })
-SecCamera:AddToggle("PredictionToggle", { Title = "Предикт полета предметов", Default = true })
 
 local SecSmoothCam = Tabs.Visuals:AddSection("Smooth Camera")
 SecSmoothCam:AddToggle("SmoothCamToggle", { Title = "Включить Smooth Cam", Default = false })
@@ -1004,11 +1037,19 @@ SecSky:AddDropdown("SkyboxDropdown", {
     Callback = function() applyVisuals() end
 })
 
-local SecLighting = Tabs.Visuals:AddSection("Освещение и Ambient (Мир)")
+-- КАСТОМНЫЙ FOG И GLOW СЕКЦИЯ
+local SecLighting = Tabs.Visuals:AddSection("Освещение, Custom Fog & Glow")
 SecLighting:AddSlider("ClockTimeSlider", { Title = "Время суток", Default = 18.5, Min = 0, Max = 24, Rounding = 1 })
 SecLighting:AddColorpicker("AmbientColorPicker", { Title = "Цвет Ambient", Default = Color3.fromRGB(40, 35, 50) })
 SecLighting:AddColorpicker("OutdoorAmbientColorPicker", { Title = "Цвет Outdoor Ambient", Default = Color3.fromRGB(50, 40, 60) })
-SecLighting:AddColorpicker("FogColorPicker", { Title = "Цвет Тумана", Default = Color3.fromRGB(25, 20, 30), Callback = function() applyVisuals() end })
+
+SecLighting:AddToggle("CustomFogToggle", { Title = "Включить Кастомный Туман (Fog)", Default = false })
+SecLighting:AddColorpicker("FogColorPicker", { Title = "Цвет Тумана", Default = Color3.fromRGB(25, 20, 30) })
+SecLighting:AddSlider("FogStartSlider", { Title = "Начало тумана (FogStart)", Default = 0, Min = 0, Max = 500, Rounding = 1 })
+SecLighting:AddSlider("FogEndSlider", { Title = "Конец тумана (FogEnd)", Default = 300, Min = 10, Max = 2000, Rounding = 1 })
+
+SecLighting:AddToggle("GlobalGlowToggle", { Title = "Динамический Global Glow (Мир)", Default = true })
+SecLighting:AddSlider("GlobalGlowBrightness", { Title = "Интенсивность Global Glow", Default = 2, Min = 0.5, Max = 10, Rounding = 1 })
 
 local SecHat = Tabs.Visuals:AddSection("China Hat (Шляпа + RGB + Glow)")
 SecHat:AddToggle("ChinaHatToggle", { Title = "Включить China Hat", Default = true }):OnChanged(function() applyVisuals() end)
@@ -1018,7 +1059,6 @@ SecHat:AddSlider("HatHeightSlider", { Title = "Высота конуса Шля�
 SecHat:AddSlider("HatTransSlider", { Title = "Прозрачность Шляпы (0-1)", Default = 0, Min = 0, Max = 1, Rounding = 2 }):OnChanged(function() applyVisuals() end)
 SecHat:AddColorpicker("ChinaHatColorPicker", { Title = "Цвет Шляпы", Default = Color3.fromRGB(255, 255, 255), Callback = function() applyVisuals() end })
 
--- ТРЕЙЛЫ И ЭФФЕКТЫ (С RGB, СКОРОСТЬЮ И СВЕЧЕНИЕМ)
 local SecTrails = Tabs.Visuals:AddSection("Гибкие Трейлы ( + RGB + Glow )")
 SecTrails:AddToggle("TrailToggle", { Title = "Включить Трейлы", Default = true }):OnChanged(function() applyVisuals() end)
 SecTrails:AddToggle("TrailRGBToggle", { Title = "RGB режим Трейлов", Default = false }):OnChanged(function() applyVisuals() end)
@@ -1042,14 +1082,15 @@ local MoveSection = Tabs.Movement:AddSection("Player & Speed Function")
 local RageSection = Tabs.Movement:AddSection("Rage Movement")
 local TargetSection = Tabs.Movement:AddSection("Target Strafe (HvH)")
 
--- SPEED С ТРЕМЯ МЕХАНИКАМИ[cite: 1]
 MoveSection:AddToggle("SpeedToggle", { Title = "Включить Speed", Default = false })
 MoveSection:AddDropdown("SpeedMode", {
     Title = "Режим Speed",
-    Values = {"Velocity", "CFrame", "Bypass (Micro-Step)"},
+    Values = {"Velocity", "CFrame", "Bypass (Micro-Step)", "TP Speed"},
     Default = "Velocity"
 })
 MoveSection:AddSlider("SpeedSlider", { Title = "Скорость (Speed)", Default = 16, Min = 16, Max = 300, Rounding = 1 })
+MoveSection:AddSlider("TPSpeedDistance", { Title = "TP Speed: Дистанция шага", Default = 3.5, Min = 0.5, Max = 15, Rounding = 1 })
+MoveSection:AddSlider("TPSpeedInterval", { Title = "TP Speed: Задержка / Частота (сек)", Default = 0.03, Min = 0, Max = 0.2, Rounding = 3 })
 
 MoveSection:AddToggle("NoclipToggle", { Title = "Noclip", Default = false })
 MoveSection:AddToggle("FlyToggle", { Title = "Fly (T-Pose)", Default = false })
@@ -1090,16 +1131,38 @@ TargetSection:AddSlider("TargetRadius", { Title = "Радиус круга", Def
 TargetSection:AddSlider("TargetSpeed", { Title = "Скорость вращения", Default = 10, Min = 1, Max = 50, Rounding = 1 })
 TargetSection:AddToggle("TargetHUDToggle", { Title = "Показывать Target HUD", Default = true })
 
-local cachedPlayers = {}
-Players.PlayerAdded:Connect(function(p) table.insert(cachedPlayers, p) end)
-Players.PlayerRemoving:Connect(function(p)
-    for i, v in ipairs(cachedPlayers) do if v == p then table.remove(cachedPlayers, i) break end end
-end)
-for _, p in ipairs(Players:GetPlayers()) do table.insert(cachedPlayers, p) end
+local trackedPlayers = {}
 
----------------------------------------------------------
--- МОНИТОРИНГ УБИЙСТВ И ПОЛУЧЕНИЯ УРОНА (ХИТ-САУНД)
----------------------------------------------------------
+local function disableCanCollide(part)
+    if part:IsA("BasePart") and part.CanCollide then
+        part.CanCollide = false
+    end
+end
+
+local function trackCharacter(character)
+    for _, part in pairs(character:GetChildren()) do
+        disableCanCollide(part)
+    end
+    character.ChildAdded:Connect(function(child)
+        disableCanCollide(child)
+    end)
+end
+
+local function trackPlayer(player)
+    if player == LocalPlayer then return end
+    if player.Character then
+        trackCharacter(player.Character)
+    end
+    player.CharacterAdded:Connect(trackCharacter)
+    trackedPlayers[player] = true
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    trackPlayer(player)
+end
+
+Players.PlayerAdded:Connect(trackPlayer)
+
 local function MonitorPlayer(player)
     if player == LocalPlayer then return end
     local function onCharacterAdded(char)
@@ -1146,24 +1209,11 @@ Players.PlayerAdded:Connect(MonitorPlayer)
 
 RunService.Stepped:Connect(function()
     local noclipOn = Options.NoclipToggle and Options.NoclipToggle.Value
-    local antiFlingOn = Options.AntiFlingToggle and Options.AntiFlingToggle.Value
     
     if noclipOn and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.CanCollide then
                 part.CanCollide = false
-            end
-        end
-    end
-    
-    if antiFlingOn then
-        for _, player in ipairs(cachedPlayers) do
-            if player ~= LocalPlayer and player.Character then
-                for _, part in ipairs(player.Character:GetDescendants()) do
-                    if part:IsA("BasePart") and part.CanCollide then
-                        part.CanCollide = false
-                    end
-                end
             end
         end
     end
@@ -1193,19 +1243,40 @@ local function ShowTargetHudFor(player, duration)
 end
 
 local smoothedPosition = nil
+local lastTpTick = 0
 
 RunService.RenderStepped:Connect(function(deltaTime)
+    local antiFlingOn = Options.AntiFlingToggle and Options.AntiFlingToggle.Value
+    if antiFlingOn then
+        for player, _ in pairs(trackedPlayers) do
+            local character = player.Character
+            if character then
+                for _, part in pairs(character:GetChildren()) do
+                    disableCanCollide(part)
+                end
+            end
+        end
+    end
+
     local char = LocalPlayer.Character
     
     if Options.ClockTimeSlider then Lighting.ClockTime = Options.ClockTimeSlider.Value end
     if Options.AmbientColorPicker then Lighting.Ambient = Options.AmbientColorPicker.Value end
     if Options.OutdoorAmbientColorPicker then Lighting.OutdoorAmbient = Options.OutdoorAmbientColorPicker.Value end
+
+    -- Обработка кастомного тумана
+    if Options.CustomFogToggle and Options.CustomFogToggle.Value then
+        Lighting.FogColor = Options.FogColorPicker and Options.FogColorPicker.Value or Color3.fromRGB(25, 20, 30)
+        Lighting.FogStart = Options.FogStartSlider and Options.FogStartSlider.Value or 0
+        Lighting.FogEnd = Options.FogEndSlider and Options.FogEndSlider.Value or 300
+    else
+        Lighting.FogEnd = 100000 -- Отключение стандартными средствами Roblox
+    end
     
     if Options.FovToggle and Options.FovToggle.Value then
         Camera.FieldOfView = Options.FOVValue.Value
     end
     
-    -- ASPECT RATIO (фиксированный метод через CFrame.fromMatrix)[cite: 1]
     if Options.AspectToggle and Options.AspectToggle.Value then
         local scaleX = Options.AspectX and Options.AspectX.Value or 1
         local scaleY = Options.AspectY and Options.AspectY.Value or 0.65
@@ -1249,14 +1320,112 @@ RunService.RenderStepped:Connect(function(deltaTime)
         smoothedPosition = nil
     end
 
-    -- ХИТБОКСЫ С УЧЕТОМ WHITELIST[cite: 1]
+    -- Рендеринг 2D ESP
+    local espEnabled = Options.ESP_Enabled and Options.ESP_Enabled.Value
+    for _, player in ipairs(Players:GetPlayers()) do
+        local esp = GetOrAddESP(player)
+        local pChar = player.Character
+        local shouldShow = false
+        
+        if espEnabled and player ~= LocalPlayer and pChar then
+            local pRoot = pChar:FindFirstChild("HumanoidRootPart")
+            local pHum = pChar:FindFirstChild("Humanoid")
+            if pRoot and pHum and pHum.Health > 0 then
+                local vector, onScreen = Camera:WorldToViewportPoint(pRoot.Position)
+                if onScreen then
+                    shouldShow = true
+                    local head = pChar:FindFirstChild("Head")
+                    local topPos = head and Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0)) or vector
+                    local bottomPos = Camera:WorldToViewportPoint(pRoot.Position - Vector3.new(0, 3, 0))
+                    
+                    local height = math.abs(topPos.Y - bottomPos.Y)
+                    local width = height / 2
+                    local boxPos = Vector2.new(vector.X - width / 2, topPos.Y)
+                    local boxSize = Vector2.new(width, height)
+                    
+                    local espColor = Options.ESP_Color and Options.ESP_Color.Value or Color3.fromRGB(255, 255, 255)
+
+                    -- Box
+                    if Options.ESP_Box and Options.ESP_Box.Value then
+                        esp.Box.Visible = true
+                        esp.BoxOutline.Visible = true
+                        esp.Box.Position = boxPos
+                        esp.Box.Size = boxSize
+                        esp.Box.Color = espColor
+                        esp.BoxOutline.Position = boxPos
+                        esp.BoxOutline.Size = boxSize
+                    else
+                        esp.Box.Visible = false
+                        esp.BoxOutline.Visible = false
+                    end
+
+                    -- Name & Distance
+                    local infoText = ""
+                    if Options.ESP_Name and Options.ESP_Name.Value then infoText = player.Name end
+                    if Options.ESP_Distance and Options.ESP_Distance.Value then
+                        local dist = myRoot and math.floor((pRoot.Position - myRoot.Position).Magnitude) or 0
+                        infoText = infoText .. " [" .. dist .. "m]"
+                    end
+                    
+                    if infoText ~= "" then
+                        esp.Name.Visible = true
+                        esp.Name.Text = infoText
+                        esp.Name.Position = Vector2.new(boxPos.X + boxSize.X / 2, boxPos.Y - 18)
+                        esp.Name.Color = espColor
+                    else
+                        esp.Name.Visible = false
+                    end
+
+                    -- Health Bar
+                    if Options.ESP_Health and Options.ESP_Health.Value then
+                        esp.HealthBar.Visible = true
+                        esp.HealthBarOutline.Visible = true
+                        local hpRatio = math.clamp(pHum.Health / pHum.MaxHealth, 0, 1)
+                        local barHeight = boxSize.Y * hpRatio
+                        
+                        esp.HealthBarOutline.From = Vector2.new(boxPos.X - 6, boxPos.Y)
+                        esp.HealthBarOutline.To = Vector2.new(boxPos.X - 6, boxPos.Y + boxSize.Y)
+                        
+                        esp.HealthBar.From = Vector2.new(boxPos.X - 6, boxPos.Y + (boxSize.Y - barHeight))
+                        esp.HealthBar.To = Vector2.new(boxPos.X - 6, boxPos.Y + boxSize.Y)
+                        esp.HealthBar.Color = Color3.fromRGB(255 - (hpRatio * 255), hpRatio * 255, 0)
+                    else
+                        esp.HealthBar.Visible = false
+                        esp.HealthBarOutline.Visible = false
+                    end
+
+                    -- Tracers
+                    if Options.ESP_Tracers and Options.ESP_Tracers.Value then
+                        esp.Tracer.Visible = true
+                        local originMode = Options.ESP_TracerOrigin and Options.ESP_TracerOrigin.Value or "Низ экрана"
+                        local startPoint = originMode == "Низ экрана" and Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y) or Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                        esp.Tracer.From = startPoint
+                        esp.Tracer.To = Vector2.new(vector.X, bottomPos.Y)
+                        esp.Tracer.Color = espColor
+                    else
+                        esp.Tracer.Visible = false
+                    end
+                end
+            end
+        end
+
+        if not shouldShow then
+            esp.Box.Visible = false
+            esp.BoxOutline.Visible = false
+            esp.Name.Visible = false
+            esp.HealthBar.Visible = false
+            esp.HealthBarOutline.Visible = false
+            esp.Tracer.Visible = false
+        end
+    end
+
     if Options.HitboxToggle and Options.HitboxToggle.Value then
         local targetSize = Options.HitboxSize.Value
         local targetTrans = Options.HitboxTrans.Value
         local targetColor = Options.HitboxColor.Value
         local teamCheck = Options.TeamCheckToggle.Value
         
-        for _, player in ipairs(cachedPlayers) do
+        for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 local tHum = player.Character:FindFirstChild("Humanoid")
                 local hrp = player.Character.HumanoidRootPart
@@ -1284,7 +1453,7 @@ RunService.RenderStepped:Connect(function(deltaTime)
             end
         end
     else
-        for _, player in ipairs(cachedPlayers) do
+        for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = player.Character.HumanoidRootPart
                 if hrp.Size.X > 2 then
@@ -1295,8 +1464,7 @@ RunService.RenderStepped:Connect(function(deltaTime)
         end
     end
 
-    -- ЧАМСЫ (НЕ ЗАТРАГИВАЮТ HumanoidRootPart)[cite: 1]
-    for _, player in ipairs(cachedPlayers) do
+    for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local ch = player.Character
             local chamsEnabled = Options.ChamsToggle and Options.ChamsToggle.Value
@@ -1390,7 +1558,6 @@ RunService.RenderStepped:Connect(function(deltaTime)
     end
 
     if not targetActive then
-        -- SPEED ФУНКЦИЯ (3 МЕХАНИКИ)[cite: 1]
         if Options.SpeedToggle and Options.SpeedToggle.Value and not Options.FlyToggle.Value and not Options.StrafeToggle.Value then
             local speedVal = Options.SpeedSlider.Value
             local mode = Options.SpeedMode.Value
@@ -1409,6 +1576,16 @@ RunService.RenderStepped:Connect(function(deltaTime)
                     local stepDistance = (speedVal * 0.75) * deltaTime
                     hrp.CFrame = hrp.CFrame + (moveDir * stepDistance)
                     hrp.AssemblyLinearVelocity = Vector3.new(moveDir.X * (speedVal * 0.5), hrp.AssemblyLinearVelocity.Y, moveDir.Z * (speedVal * 0.5))
+                end
+            elseif mode == "TP Speed" then
+                if moveDir.Magnitude > 0 then
+                    local currentTime = tick()
+                    local interval = Options.TPSpeedInterval and Options.TPSpeedInterval.Value or 0.03
+                    if currentTime - lastTpTick >= interval then
+                        lastTpTick = currentTime
+                        local tpDist = Options.TPSpeedDistance and Options.TPSpeedDistance.Value or 3.5
+                        hrp.CFrame = hrp.CFrame + (moveDir * tpDist)
+                    end
                 end
             end
         end
@@ -1465,7 +1642,29 @@ LocalPlayer.CharacterAdded:Connect(function()
     smoothedPosition = nil
 end)
 
-Tabs.Keybinds:AddParagraph({ Title = "Управление Target Strafe", Content = "Наведи мышку на игрока и нажми бинд для выбора." })
+Tabs.Keybinds:AddParagraph({ Title = "Управление Target Strafe", Content = "Наведи мышку на игрока и нажми бинд для выбора или кнопку Y." })
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.KeyCode == Enum.KeyCode.Y then
+            local mouseTarget = Mouse.Target
+            if mouseTarget and mouseTarget.Parent then
+                local p = Players:GetPlayerFromCharacter(mouseTarget.Parent)
+                if p and p ~= LocalPlayer then
+                    CurrentTarget = p
+                    Options.TargetNameInput:SetValue(p.Name)
+                    Options.TargetStrafeToggle:SetValue(true)
+                    Fluent:Notify({ Title = "Target Strafe (Y)", Content = "Цель захвачена и Strafe включен: " .. p.Name, Duration = 2 })
+                else
+                    Options.TargetStrafeToggle:SetValue(not Options.TargetStrafeToggle.Value)
+                end
+            else
+                Options.TargetStrafeToggle:SetValue(not Options.TargetStrafeToggle.Value)
+            end
+        end
+    end
+end)
+
 Tabs.Keybinds:AddKeybind("Bind_SelectTarget", { Title = "Выбрать игрока под мышкой", Mode = "Hold", Default = "None", Callback = function()
     local target = Mouse.Target
     if target and target.Parent then
@@ -1520,7 +1719,7 @@ InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 
 Window:SelectTab(1)
-Fluent:Notify({ Title = "Готово", Content = "Трейлы, свечение (Glow) и ауры успешно обновлены!", Duration = 3 })
+Fluent:Notify({ Title = "Готово", Content = "Скрипт успешно запущен с Fog, Glow и 2D ESP!", Duration = 3 })
 SaveManager:LoadAutoloadConfig()
 
 applyVisuals()
